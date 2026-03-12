@@ -11,7 +11,14 @@ function getToken() {
 
 function getUser() {
   const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  if (!user) return null;
+
+  try {
+    return JSON.parse(user);
+  } catch (error) {
+    localStorage.removeItem('user');
+    return null;
+  }
 }
 
 function isLoggedIn() {
@@ -54,30 +61,33 @@ function updateNavbar() {
   const homeLink = isInPages ? '../index.html' : 'index.html';
 
   if (user) {
-    let links = '';
+    let menuLinks = '';
 
     if (user.role === 'admin') {
-      links = `
-        <li class="nav-item"><a class="nav-link text-white" href="${prefix}admin.html"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
+      menuLinks = `
+        <li><a class="profile-flyout-link" href="${prefix}admin.html"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
       `;
     } else {
-      links = `
-        <li class="nav-item"><a class="nav-link text-white" href="${prefix}dashboard.html"><i class="fas fa-chart-line me-1"></i> Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="${prefix}assessment.html"><i class="fas fa-clipboard-list me-1"></i> Assessment</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="${prefix}results.html"><i class="fas fa-file-alt me-1"></i> Results</a></li>
+      menuLinks = `
+        <li><a class="profile-flyout-link" href="${prefix}dashboard.html"><i class="fas fa-chart-line me-2"></i>Dashboard</a></li>
+        <li><a class="profile-flyout-link" href="${prefix}assessment.html"><i class="fas fa-clipboard-list me-2"></i>Assessment</a></li>
+        <li><a class="profile-flyout-link" href="${prefix}results.html"><i class="fas fa-file-alt me-2"></i>Results</a></li>
       `;
     }
 
-    links += `
-      <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+    const links = `
+      <li class="nav-item position-relative profile-menu-wrap">
+        <a class="nav-link text-white" href="#" data-action="toggle-profile-menu" aria-expanded="false">
           <i class="fas fa-user-circle me-1"></i> ${user.name}
+          <i class="fas fa-chevron-down ms-1 small"></i>
         </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><span class="dropdown-item-text small text-muted">${user.email}</span></li>
-          <li><span class="dropdown-item-text small"><span class="badge bg-primary">${user.role}</span></span></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+        <ul class="profile-flyout-menu" data-role="profile-menu">
+          <li><span class="profile-flyout-meta">${user.email}</span></li>
+          <li><span class="profile-flyout-role">${user.role}</span></li>
+          <li class="profile-flyout-divider"></li>
+          ${menuLinks}
+          <li class="profile-flyout-divider"></li>
+          <li><a class="profile-flyout-link text-danger" href="#" data-action="logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
         </ul>
       </li>
       <li class="nav-item ms-2">
@@ -116,3 +126,44 @@ function toggleDarkMode() {
   const icon = document.getElementById('darkModeIcon');
   if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const navLinksEl = document.getElementById('navLinks');
+  if (navLinksEl) {
+    updateNavbar();
+  }
+
+  document.addEventListener('click', (event) => {
+    const profileToggle = event.target.closest('[data-action="toggle-profile-menu"]');
+    if (profileToggle) {
+      event.preventDefault();
+      const wrap = profileToggle.closest('.profile-menu-wrap');
+      const menu = wrap?.querySelector('[data-role="profile-menu"]');
+      if (!menu) return;
+
+      const willOpen = !menu.classList.contains('show');
+      document.querySelectorAll('[data-role="profile-menu"].show').forEach((item) => {
+        item.classList.remove('show');
+      });
+      menu.classList.toggle('show', willOpen);
+      profileToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      return;
+    }
+
+    const logoutLink = event.target.closest('[data-action="logout"]');
+    if (logoutLink) {
+      event.preventDefault();
+      logout();
+      return;
+    }
+
+    if (!event.target.closest('.profile-menu-wrap')) {
+      document.querySelectorAll('[data-role="profile-menu"].show').forEach((item) => {
+        item.classList.remove('show');
+      });
+      document.querySelectorAll('[data-action="toggle-profile-menu"]').forEach((toggle) => {
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+});

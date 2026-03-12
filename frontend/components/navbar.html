@@ -1,14 +1,11 @@
 <!-- Navbar Component (included inline in each page) -->
-<nav class="navbar navbar-expand-lg shadow-sm" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+<nav class="navbar shadow-sm" style="background: linear-gradient(135deg, #667eea, #764ba2);">
   <div class="container">
     <a class="navbar-brand text-white fw-bold fs-4" href="../index.html">
       <i class="fas fa-brain me-2"></i>MindCare
     </a>
-    <button class="navbar-toggler border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto" id="navLinks">
+    <div class="d-flex ms-auto align-items-center" id="navbarNav">
+      <ul class="navbar-nav d-flex flex-row align-items-center gap-2" id="navLinks">
         <!-- Populated by auth.js updateNavbar() -->
       </ul>
     </div>

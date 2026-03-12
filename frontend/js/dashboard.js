@@ -1,4 +1,7 @@
 // Dashboard page logic
+let historyById = {};
+let resultByAssessmentId = {};
+
 document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
   updateNavbar();
@@ -10,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadDashboardData();
   initChatbot();
+  initHistoryDetails();
 });
 
 async function loadDashboardData() {
@@ -80,8 +84,20 @@ function renderRiskBadge(level) {
 
 function renderHistoryTable(history, results) {
   const body = document.getElementById('historyBody');
+  historyById = history.reduce((acc, item) => {
+    acc[item._id] = item;
+    return acc;
+  }, {});
+  resultByAssessmentId = results.reduce((acc, item) => {
+    const aid = item.assessmentId?._id || item.assessmentId;
+    if (aid) {
+      acc[aid] = item;
+    }
+    return acc;
+  }, {});
+
   if (history.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No assessments yet</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No assessments yet</td></tr>';
     return;
   }
 
@@ -103,9 +119,94 @@ function renderHistoryTable(history, results) {
       <td>${a.sleepHours} hrs</td>
       <td>${a.mood}/10</td>
       <td>${getRiskBadgeSmall(riskMap[a._id])}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary rounded-pill" data-action="view-history" data-assessment-id="${a._id}">
+          <i class="fas fa-eye me-1"></i>View
+        </button>
+      </td>
     </tr>`
     )
     .join('');
+}
+
+function initHistoryDetails() {
+  const historyBody = document.getElementById('historyBody');
+  if (!historyBody) return;
+
+  historyBody.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-action="view-history"]');
+    if (!btn) return;
+
+    const assessmentId = btn.getAttribute('data-assessment-id');
+    const assessment = historyById[assessmentId];
+    if (!assessment) return;
+
+    const result = resultByAssessmentId[assessmentId] || null;
+    showAssessmentDetails(assessment, result);
+  });
+}
+
+function showAssessmentDetails(assessment, result) {
+  const body = document.getElementById('assessmentDetailBody');
+  if (!body) return;
+
+  const detailRows = [
+    ['Date', new Date(assessment.createdAt).toLocaleString()],
+    ['Sleep Hours', `${assessment.sleepHours} hrs`],
+    ['Stress Level', `${assessment.stressLevel}/10`],
+    ['Screen Time', `${assessment.screenTime} hrs`],
+    ['Study Load', `${assessment.studyLoad}/10`],
+    ['Social Activity', `${assessment.socialActivity}/10`],
+    ['Mood', `${assessment.mood}/10`],
+    ['Energy', `${assessment.energy}/10`],
+    ['Motivation', `${assessment.motivation}/10`],
+    ['Isolation', `${assessment.isolation}/10`],
+    ['Concentration', `${assessment.concentration}/10`],
+    ['Academic Pressure', `${assessment.academicPressure}/10`],
+    ['Physical Activity', `${assessment.physicalActivity}/10`],
+    ['Emotional Stability', `${assessment.emotionalStability}/10`],
+  ];
+
+  const riskBadge = result
+    ? `<span class="badge bg-${
+        result.riskLevel === 'High' ? 'danger' : result.riskLevel === 'Moderate' ? 'warning text-dark' : 'success'
+      }">${result.riskLevel}</span>`
+    : '<span class="text-muted">Not generated yet</span>';
+
+  const recommendationsHtml = result?.recommendations?.length
+    ? `<ul class="mb-0 ps-3">${result.recommendations
+        .map((item) => `<li class="mb-1">${item}</li>`)
+        .join('')}</ul>`
+    : '<span class="text-muted">No recommendations available</span>';
+
+  body.innerHTML = `
+    <div class="mb-3 p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e5e7eb;">
+      <h6 class="fw-bold mb-2"><i class="fas fa-robot me-2"></i>System Result</h6>
+      <div class="mb-2"><strong>Risk Level:</strong> ${riskBadge}</div>
+      <div><strong>Recommendations:</strong> ${recommendationsHtml}</div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <tbody>
+          ${detailRows
+            .map(
+              ([label, value]) => `
+            <tr>
+              <th class="text-muted" style="width: 40%;">${label}</th>
+              <td class="fw-semibold">${value}</td>
+            </tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const modalEl = document.getElementById('assessmentDetailModal');
+  if (!modalEl || !window.bootstrap?.Modal) return;
+  const modal = new window.bootstrap.Modal(modalEl);
+  modal.show();
 }
 
 function getRiskBadgeSmall(level) {
